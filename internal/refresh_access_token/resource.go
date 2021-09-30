@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -114,6 +115,11 @@ func read(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Di
 	rb, err := io.ReadAll(r.Body)
 	if err != nil {
 		return append(diags, diag.FromErr(err)...)
+	}
+
+	if r.StatusCode < 200 || r.StatusCode > 299 {
+		log.Printf("[DEBUG] Body was:\n%s\n", rb)
+		log.Printf("[ERROR] Responded with code %d: %s\n", r.StatusCode, http.StatusText(r.StatusCode))
 	}
 
 	c := &refreshResponse{}
