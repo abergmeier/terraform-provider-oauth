@@ -112,18 +112,41 @@ func read(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Di
 	}
 	defer r.Body.Close()
 
-	rb, err := io.ReadAll(r.Body)
+	if r.StatusCode < 200 || r.StatusCode > 299 {
+		var b [1024]byte
+		n, err := io.ReadAtLeast(r.Body, b[:], len(b))
+		if err != nil && err != io.ErrUnexpectedEOF {
+			return append(diags, diag.FromErr(err)...)
+		}
+		log.Printf("[DEBUG] Body was:\n%s\n", string(b[:n]))
+		return append(diags, diag.Errorf("Responded with code %d: %s\n", r.StatusCode, http.StatusText(r.StatusCode))...)
+	}
+
+	return setDataFromReader(r.Body, d)
+}
+
+func setDataFromReader(r io.Reader, d *schema.ResourceData) diag.Diagnostics {
+
+	var diags diag.Diagnostics
+	rb, err := io.ReadAll(r)
 	if err != nil {
 		return append(diags, diag.FromErr(err)...)
 	}
 
-	if r.StatusCode < 200 || r.StatusCode > 299 {
-		log.Printf("[DEBUG] Body was:\n%s\n", rb)
-		return append(diags, diag.Errorf("Responded with code %d: %s\n", r.StatusCode, http.StatusText(r.StatusCode))...)
+	if len(rb) > 1024 {
+		rb = rb[:1024]
 	}
+	log.Printf("[DEBUG] Data was:\n%s\n", string(rb))
+
+	return setDataFromJSON(rb, d)
+}
+
+func setDataFromJSON(s []byte, d *schema.ResourceData) diag.Diagnostics {
+
+	var diags diag.Diagnostics
 
 	c := &refreshResponse{}
-	err = json.Unmarshal(rb, c)
+	err := json.Unmarshal(s, c)
 	if err != nil {
 		return append(diags, diag.FromErr(err)...)
 	}
