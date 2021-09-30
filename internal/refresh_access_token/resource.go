@@ -119,7 +119,7 @@ func read(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Di
 
 	if r.StatusCode < 200 || r.StatusCode > 299 {
 		log.Printf("[DEBUG] Body was:\n%s\n", rb)
-		log.Printf("[ERROR] Responded with code %d: %s\n", r.StatusCode, http.StatusText(r.StatusCode))
+		return append(diags, diag.Errorf("Responded with code %d: %s\n", r.StatusCode, http.StatusText(r.StatusCode))...)
 	}
 
 	c := &refreshResponse{}
