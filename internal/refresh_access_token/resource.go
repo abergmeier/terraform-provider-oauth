@@ -60,7 +60,7 @@ func Resource() *schema.Resource {
 }
 
 type defaultCredentials struct {
-	AccessToken string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
 }
 type refreshResponse struct {
 	AccessToken string `json:"access_token"`
@@ -85,7 +85,7 @@ func gcloudRefreshToken() (interface{}, error) {
 		return nil, err
 	}
 
-	return c.AccessToken, nil
+	return c.RefreshToken, nil
 }
 
 func read(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
