@@ -45,6 +45,10 @@ func Resource() *schema.Resource {
 				Computed:  true,
 				Sensitive: true,
 			},
+			"scope": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"token_type": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -54,7 +58,10 @@ func Resource() *schema.Resource {
 	}
 }
 
-type applicationDefaultCredentials struct {
+type defaultCredentials struct {
+	AccessToken string `json:"access_token"`
+}
+type refreshResponse struct {
 	AccessToken string `json:"access_token"`
 	Scope       string `json:"scope"`
 	TokenType   string `json:"token_type"`
@@ -71,7 +78,7 @@ func gcloudRefreshToken() (interface{}, error) {
 		return nil, err
 	}
 
-	c := &applicationDefaultCredentials{}
+	c := &defaultCredentials{}
 	err = json.Unmarshal(b, &c)
 	if err != nil {
 		return nil, err
@@ -109,7 +116,7 @@ func read(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Di
 		return append(diags, diag.FromErr(err)...)
 	}
 
-	c := &applicationDefaultCredentials{}
+	c := &refreshResponse{}
 	err = json.Unmarshal(rb, c)
 	if err != nil {
 		return append(diags, diag.FromErr(err)...)
