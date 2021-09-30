@@ -7,8 +7,8 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"net/url"
 	"os"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -101,12 +101,7 @@ func read(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Di
 	tu := d.Get("token_url")
 	tokenUrl := tu.(string)
 
-	r, err := http.PostForm(tokenUrl, url.Values{
-		"client_id":     {clientId},
-		"client_secret": {clientSecret},
-		"refresh_token": {refreshToken},
-		"grant_type":    {"refresh_token"},
-	})
+	r, err := http.Post(tokenUrl, "application/x-www-form-urlencoded", strings.NewReader(fmt.Sprintf("client_id=%s&client_secret=%s&refresh_token=%s&grant_type=refresh_token", clientId, clientSecret, refreshToken)))
 	if err != nil {
 		return append(diags, diag.FromErr(err)...)
 	}
