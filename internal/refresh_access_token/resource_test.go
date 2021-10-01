@@ -1,20 +1,25 @@
 package refresh_access_token
 
 import (
+	"io"
+	"net/http"
 	"strings"
 	"testing"
 )
 
 func TestSetDataFromReader(t *testing.T) {
-
-	r := strings.NewReader(`{
-"access_token": "1/fFAGRNJru1FTz70BzhT3Zg",
-"expires_in": 3920,
-"scope": "https://www.googleapis.com/auth/drive.metadata.readonly",
-"token_type": "Bearer"
-}`)
+	resp := &http.Response{
+		StatusCode: 200,
+		Body: io.NopCloser(strings.NewReader(`{
+			"access_token": "1/fFAGRNJru1FTz70BzhT3Zg",
+			"expires_in": 3920,
+			"scope": "https://www.googleapis.com/auth/drive.metadata.readonly",
+			"token_type": "Bearer"
+		}`)),
+	}
 	d := Resource().TestResourceData()
-	diags := setDataFromReader(r, d)
+
+	diags := setDataFromResponse(resp, d)
 	if diags != nil {
 		t.Error("Unexpected problems:", diags)
 	}

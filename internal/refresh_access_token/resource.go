@@ -122,9 +122,7 @@ func readDefaultGcloudRefreshToken() (interface{}, error) {
 	return c.RefreshToken, nil
 }
 
-func read(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-
-	var diags diag.Diagnostics
+func read(ctx context.Context, d *schema.ResourceData, meta interface{}) (diags diag.Diagnostics) {
 
 	iid := d.Get("client_id")
 	clientId := iid.(string)
@@ -135,45 +133,54 @@ func read(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Di
 	tu := d.Get("token_url")
 	tokenUrl := tu.(string)
 
-	r, err := http.Post(tokenUrl, "application/x-www-form-urlencoded", strings.NewReader(fmt.Sprintf("client_id=%s&client_secret=%s&refresh_token=%s&grant_type=refresh_token", clientId, clientSecret, refreshToken)))
+	p := fmt.Sprintf("client_id=%s&client_secret=%s&refresh_token=%s&grant_type=refresh_token", clientId, clientSecret, refreshToken)
+	r, err := http.Post(
+		tokenUrl,
+		"application/x-www-form-urlencoded",
+		strings.NewReader(p),
+	)
 	if err != nil {
 		return append(diags, diag.FromErr(err)...)
 	}
 	defer r.Body.Close()
 
-	if r.StatusCode < 200 || r.StatusCode > 299 {
-		var b [1024]byte
-		n, err := io.ReadAtLeast(r.Body, b[:], len(b))
-		if err != nil && err != io.ErrUnexpectedEOF {
-			return append(diags, diag.FromErr(err)...)
-		}
-		log.Printf("[DEBUG] Body was:\n%s\n", string(b[:n]))
-		return append(diags, diag.Errorf("Responded with code %d: %s\n", r.StatusCode, http.StatusText(r.StatusCode))...)
-	}
-
-	return setDataFromReader(r.Body, d)
+	return append(diags, setDataFromResponse(r, d)...)
 }
 
-func setDataFromReader(r io.Reader, d *schema.ResourceData) diag.Diagnostics {
+func debugLogResponse(s []byte) {
+	if len(s) > 1024 {
+		log.Printf(`[DEBUG] OAuth response details (cropped):
+---[ RESPONSE ]--------------------------------------
+%s
+...
+-----------------------------------------------------
+`, string(s[:1024]))
+	} else {
+		log.Printf(`[DEBUG] OAuth response details:
+---[ RESPONSE ]--------------------------------------
+%s
+-----------------------------------------------------
+`, string(s))
+	}
+}
 
-	var diags diag.Diagnostics
-	rb, err := io.ReadAll(r)
+func setDataFromResponse(r *http.Response, d *schema.ResourceData) (diags diag.Diagnostics) {
+
+	rb, err := io.ReadAll(r.Body)
 	if err != nil {
 		return append(diags, diag.FromErr(err)...)
 	}
 
-	if len(rb) > 1024 {
-		log.Printf("[DEBUG] Data was:\n%s...\n", string(rb[:1024]))
-	} else {
-		log.Printf("[DEBUG] Data was:\n%s\n", string(rb))
+	debugLogResponse(rb)
+
+	if r.StatusCode < 200 || r.StatusCode > 299 {
+		return append(diags, diag.Errorf("Responded with code %d: %s\n", r.StatusCode, http.StatusText(r.StatusCode))...)
 	}
 
-	return setDataFromJSON(rb, d)
+	return append(diags, setDataFromJSON(rb, d)...)
 }
 
-func setDataFromJSON(s []byte, d *schema.ResourceData) diag.Diagnostics {
-
-	var diags diag.Diagnostics
+func setDataFromJSON(s []byte, d *schema.ResourceData) (diags diag.Diagnostics) {
 
 	c := &refreshResponse{}
 	err := json.Unmarshal(s, c)
@@ -201,5 +208,5 @@ func setDataFromJSON(s []byte, d *schema.ResourceData) diag.Diagnostics {
 		return append(diags, diag.FromErr(err)...)
 	}
 
-	return diags
+	return
 }
