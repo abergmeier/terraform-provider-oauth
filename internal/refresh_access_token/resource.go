@@ -157,9 +157,10 @@ func setDataFromReader(r io.Reader, d *schema.ResourceData) diag.Diagnostics {
 	}
 
 	if len(rb) > 1024 {
-		rb = rb[:1024]
+		log.Printf("[DEBUG] Data was:\n%s...\n", string(rb[:1024]))
+	} else {
+		log.Printf("[DEBUG] Data was:\n%s\n", string(rb))
 	}
-	log.Printf("[DEBUG] Data was:\n%s\n", string(rb))
 
 	return setDataFromJSON(rb, d)
 }
