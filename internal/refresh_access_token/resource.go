@@ -19,22 +19,24 @@ func Resource() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"client_id": {
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
 				Description: "Client ID",
 				Sensitive:   true,
+				DefaultFunc: readDefaultGcloudClientId,
 			},
 			"client_secret": {
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
 				Description: "Client Secret",
 				Sensitive:   true,
+				DefaultFunc: readDefaultGcloudClientSecret,
 			},
 			"refresh_token": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "Refresh Token",
 				Sensitive:   true,
-				DefaultFunc: gcloudRefreshToken,
+				DefaultFunc: readDefaultGcloudRefreshToken,
 			},
 			"token_url": {
 				Type:     schema.TypeString,
@@ -60,6 +62,8 @@ func Resource() *schema.Resource {
 }
 
 type defaultCredentials struct {
+	ClientId     string `json:"client_id"`
+	ClientSecret string `json:"client_secret"`
 	RefreshToken string `json:"refresh_token"`
 }
 type refreshResponse struct {
@@ -68,7 +72,7 @@ type refreshResponse struct {
 	TokenType   string `json:"token_type"`
 }
 
-func gcloudRefreshToken() (interface{}, error) {
+func readDefaultCredentials() (*defaultCredentials, error) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return nil, err
@@ -85,6 +89,30 @@ func gcloudRefreshToken() (interface{}, error) {
 		return nil, err
 	}
 
+	return c, nil
+}
+
+func readDefaultGcloudClientId() (interface{}, error) {
+	c, err := readDefaultCredentials()
+	if err != nil {
+		return nil, err
+	}
+	return c.ClientId, nil
+}
+
+func readDefaultGcloudClientSecret() (interface{}, error) {
+	c, err := readDefaultCredentials()
+	if err != nil {
+		return nil, err
+	}
+	return c.ClientSecret, nil
+}
+
+func readDefaultGcloudRefreshToken() (interface{}, error) {
+	c, err := readDefaultCredentials()
+	if err != nil {
+		return nil, err
+	}
 	return c.RefreshToken, nil
 }
 
