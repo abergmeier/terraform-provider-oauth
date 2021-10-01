@@ -48,6 +48,11 @@ func Resource() *schema.Resource {
 				Computed:  true,
 				Sensitive: true,
 			},
+			"id_token": {
+				Type:      schema.TypeString,
+				Computed:  true,
+				Sensitive: true,
+			},
 			"scope": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -68,6 +73,7 @@ type defaultCredentials struct {
 }
 type refreshResponse struct {
 	AccessToken string `json:"access_token"`
+	IdToken     string `json:"id_token"`
 	Scope       string `json:"scope"`
 	TokenType   string `json:"token_type"`
 }
@@ -176,6 +182,11 @@ func setDataFromJSON(s []byte, d *schema.ResourceData) diag.Diagnostics {
 	}
 
 	err = d.Set("access_token", c.AccessToken)
+	if err != nil {
+		return append(diags, diag.FromErr(err)...)
+	}
+
+	err = d.Set("id_token", c.IdToken)
 	if err != nil {
 		return append(diags, diag.FromErr(err)...)
 	}

@@ -23,6 +23,10 @@ func TestSetDataFromReader(t *testing.T) {
 		t.Error("Invalid access_token")
 	}
 
+	if d.Get("id_token").(string) != "" {
+		t.Error("Invalid id_token")
+	}
+
 	if d.Get("scope").(string) != "https://www.googleapis.com/auth/drive.metadata.readonly" {
 		t.Error("Invalid scope")
 	}
