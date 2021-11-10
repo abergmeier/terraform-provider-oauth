@@ -14,7 +14,9 @@ import (
 
 func read(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 
-	creds, err := google.FindDefaultCredentials(context.TODO())
+	scopes := d.Get("scopes").([]string)
+
+	creds, err := google.FindDefaultCredentials(context.TODO(), scopes...)
 	if err != nil {
 		return diag.FromErr(err)
 	}

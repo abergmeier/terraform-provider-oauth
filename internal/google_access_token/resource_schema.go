@@ -7,6 +7,13 @@ import (
 func Resource() *schema.Resource {
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{
+			"scopes": {
+				Type: schema.TypeList,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+				Default: []string{"https://www.googleapis.com/auth/cloud-platform"},
+			},
 			"access_token": {
 				Type:      schema.TypeString,
 				Computed:  true,
