@@ -2,6 +2,7 @@ package refresh_access_token
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -144,7 +145,21 @@ func read(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Di
 	}
 	defer r.Body.Close()
 
+	hash := buildHash(clientId, clientSecret, refreshToken, tokenUrl)
+	d.SetId(fmt.Sprintf("%x", hash))
+
 	return setDataFromResponse(r, d)
+}
+
+func buildHash(tokens ...string) []byte {
+	h := sha256.New()
+	for _, t := range tokens {
+		_, err := h.Write([]byte(t))
+		if err != nil {
+			panic(err)
+		}
+	}
+	return h.Sum(nil)
 }
 
 func debugLogResponse(s []byte) {
