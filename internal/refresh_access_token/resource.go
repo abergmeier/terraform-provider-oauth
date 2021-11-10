@@ -8,11 +8,11 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"golang.org/x/oauth2/google"
 )
 
 func Resource() *schema.Resource {
@@ -81,26 +81,18 @@ type refreshResponse struct {
 
 func readDefaultCredentials() (*defaultCredentials, error) {
 
-	p := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")
-	if p == "" {
-		homeDir, err := os.UserHomeDir()
-		if err != nil {
-			return nil, err
-		}
-
-		p = fmt.Sprintf("%s/.config/gcloud/application_default_credentials.json", homeDir)
-	}
-
-	b, err := os.ReadFile(p)
+	creds, err := google.FindDefaultCredentials(context.TODO())
 	if err != nil {
 		return nil, err
 	}
 
 	c := &defaultCredentials{}
-	err = json.Unmarshal(b, &c)
+	err = json.Unmarshal(creds.JSON, &c)
 	if err != nil {
 		return nil, err
 	}
+
+	debugLogJSON(creds.JSON)
 
 	return c, nil
 }
@@ -166,6 +158,21 @@ func buildHash(tokens ...string) []byte {
 		}
 	}
 	return h.Sum(nil)
+}
+
+func debugLogJSON(j []byte) {
+	m := make(map[string]interface{})
+	err := json.Unmarshal(j, &m)
+	if err != nil {
+		panic(err)
+	}
+
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	log.Printf(`[DEBUG] Found keys in auth file: %s\n
+`, keys)
 }
 
 func debugLogResponse(s []byte) {
