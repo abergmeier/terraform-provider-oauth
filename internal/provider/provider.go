@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"github.com/abergmeier/terraform-provider-oauth/internal/google_access_token"
 	"github.com/abergmeier/terraform-provider-oauth/internal/refresh_access_token"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -8,6 +9,7 @@ import (
 func Provider() *schema.Provider {
 	return &schema.Provider{
 		DataSourcesMap: map[string]*schema.Resource{
+			"oauth_google_access_token":  google_access_token.Resource(),
 			"oauth_refresh_access_token": refresh_access_token.Resource(),
 		},
 		ResourcesMap: map[string]*schema.Resource{},
