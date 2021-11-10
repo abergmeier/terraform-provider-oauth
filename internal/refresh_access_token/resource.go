@@ -122,7 +122,7 @@ func readDefaultGcloudRefreshToken() (interface{}, error) {
 	return c.RefreshToken, nil
 }
 
-func read(ctx context.Context, d *schema.ResourceData, meta interface{}) (diags diag.Diagnostics) {
+func read(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 
 	iid := d.Get("client_id")
 	clientId := iid.(string)
@@ -140,11 +140,11 @@ func read(ctx context.Context, d *schema.ResourceData, meta interface{}) (diags 
 		strings.NewReader(p),
 	)
 	if err != nil {
-		return append(diags, diag.FromErr(err)...)
+		return diag.FromErr(err)
 	}
 	defer r.Body.Close()
 
-	return append(diags, setDataFromResponse(r, d)...)
+	return setDataFromResponse(r, d)
 }
 
 func debugLogResponse(s []byte) {
@@ -164,49 +164,49 @@ func debugLogResponse(s []byte) {
 	}
 }
 
-func setDataFromResponse(r *http.Response, d *schema.ResourceData) (diags diag.Diagnostics) {
+func setDataFromResponse(r *http.Response, d *schema.ResourceData) diag.Diagnostics {
 
 	rb, err := io.ReadAll(r.Body)
 	if err != nil {
-		return append(diags, diag.FromErr(err)...)
+		return diag.FromErr(err)
 	}
 
 	debugLogResponse(rb)
 
 	if r.StatusCode < 200 || r.StatusCode > 299 {
-		return append(diags, diag.Errorf("Responded with code %d: %s\n", r.StatusCode, http.StatusText(r.StatusCode))...)
+		return diag.Errorf("Responded with code %d: %s\n", r.StatusCode, http.StatusText(r.StatusCode))
 	}
 
-	return append(diags, setDataFromJSON(rb, d)...)
+	return setDataFromJSON(rb, d)
 }
 
-func setDataFromJSON(s []byte, d *schema.ResourceData) (diags diag.Diagnostics) {
+func setDataFromJSON(s []byte, d *schema.ResourceData) diag.Diagnostics {
 
 	c := &refreshResponse{}
 	err := json.Unmarshal(s, c)
 	if err != nil {
-		return append(diags, diag.FromErr(err)...)
+		return diag.FromErr(err)
 	}
 
 	err = d.Set("access_token", c.AccessToken)
 	if err != nil {
-		return append(diags, diag.FromErr(err)...)
+		return diag.FromErr(err)
 	}
 
 	err = d.Set("id_token", c.IdToken)
 	if err != nil {
-		return append(diags, diag.FromErr(err)...)
+		return diag.FromErr(err)
 	}
 
 	err = d.Set("scope", c.Scope)
 	if err != nil {
-		return append(diags, diag.FromErr(err)...)
+		return diag.FromErr(err)
 	}
 
 	err = d.Set("token_type", c.TokenType)
 	if err != nil {
-		return append(diags, diag.FromErr(err)...)
+		return diag.FromErr(err)
 	}
 
-	return
+	return nil
 }
