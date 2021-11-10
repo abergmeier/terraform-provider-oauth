@@ -12,7 +12,8 @@ func Resource() *schema.Resource {
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
-				Default: []string{"https://www.googleapis.com/auth/cloud-platform"},
+				Optional: true,
+				Default:  []string{"https://www.googleapis.com/auth/cloud-platform"},
 			},
 			"access_token": {
 				Type:      schema.TypeString,
