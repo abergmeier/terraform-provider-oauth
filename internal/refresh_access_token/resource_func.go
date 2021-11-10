@@ -2,71 +2,19 @@ package refresh_access_token
 
 import (
 	"context"
-	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
-	"sort"
 	"strings"
 
+	"github.com/abergmeier/terraform-provider-oauth/internal/hash"
+	debuglog "github.com/abergmeier/terraform-provider-oauth/internal/log"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"golang.org/x/oauth2/google"
 )
-
-func Resource() *schema.Resource {
-	return &schema.Resource{
-		Schema: map[string]*schema.Schema{
-			"client_id": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "Client ID",
-				Sensitive:   true,
-				DefaultFunc: readDefaultGcloudClientId,
-			},
-			"client_secret": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "Client Secret",
-				Sensitive:   true,
-				DefaultFunc: readDefaultGcloudClientSecret,
-			},
-			"refresh_token": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "Refresh Token",
-				Sensitive:   true,
-				DefaultFunc: readDefaultGcloudRefreshToken,
-			},
-			"token_url": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "https://oauth2.googleapis.com/token",
-			},
-			"access_token": {
-				Type:      schema.TypeString,
-				Computed:  true,
-				Sensitive: true,
-			},
-			"id_token": {
-				Type:      schema.TypeString,
-				Computed:  true,
-				Sensitive: true,
-			},
-			"scope": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-			"token_type": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-		},
-		ReadContext: read,
-	}
-}
 
 type defaultCredentials struct {
 	ClientId     string `json:"client_id"`
@@ -93,33 +41,9 @@ func readDefaultCredentials() (*defaultCredentials, error) {
 		return nil, err
 	}
 
-	debugLogJSON(creds.JSON)
+	debuglog.DebugLogJSON(creds.JSON)
 
 	return c, nil
-}
-
-func readDefaultGcloudClientId() (interface{}, error) {
-	c, err := readDefaultCredentials()
-	if err != nil {
-		return nil, err
-	}
-	return c.ClientId, nil
-}
-
-func readDefaultGcloudClientSecret() (interface{}, error) {
-	c, err := readDefaultCredentials()
-	if err != nil {
-		return nil, err
-	}
-	return c.ClientSecret, nil
-}
-
-func readDefaultGcloudRefreshToken() (interface{}, error) {
-	c, err := readDefaultCredentials()
-	if err != nil {
-		return nil, err
-	}
-	return c.RefreshToken, nil
 }
 
 func read(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -130,6 +54,23 @@ func read(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Di
 	clientSecret := isecret.(string)
 	rt := d.Get("refresh_token")
 	refreshToken := rt.(string)
+
+	if clientId == "" {
+		c, err := readDefaultCredentials()
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		clientId = c.ClientId
+
+		if clientSecret == "" {
+			clientSecret = c.ClientSecret
+		}
+
+		if refreshToken == "" {
+			refreshToken = c.RefreshToken
+		}
+	}
+
 	tu := d.Get("token_url")
 	tokenUrl := tu.(string)
 
@@ -144,37 +85,10 @@ func read(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Di
 	}
 	defer r.Body.Close()
 
-	hash := buildHash(clientId, clientSecret, refreshToken, tokenUrl)
+	hash := hash.BuildHash(clientId, clientSecret, refreshToken, tokenUrl)
 	d.SetId(fmt.Sprintf("%x", hash))
 
 	return setDataFromResponse(r, d)
-}
-
-func buildHash(tokens ...string) []byte {
-	h := sha256.New()
-	for _, t := range tokens {
-		_, err := h.Write([]byte(t))
-		if err != nil {
-			panic(err)
-		}
-	}
-	return h.Sum(nil)
-}
-
-func debugLogJSON(j []byte) {
-	m := make(map[string]interface{})
-	err := json.Unmarshal(j, &m)
-	if err != nil {
-		panic(err)
-	}
-
-	keys := make([]string, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	log.Printf(`[DEBUG] Found keys in auth file: %s\n
-`, keys)
 }
 
 func debugLogResponse(s []byte) {
