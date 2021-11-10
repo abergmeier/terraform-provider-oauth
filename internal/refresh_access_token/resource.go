@@ -80,12 +80,18 @@ type refreshResponse struct {
 }
 
 func readDefaultCredentials() (*defaultCredentials, error) {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return nil, err
+
+	p := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")
+	if p == "" {
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			return nil, err
+		}
+
+		p = fmt.Sprintf("%s/.config/gcloud/application_default_credentials.json", homeDir)
 	}
 
-	b, err := os.ReadFile(fmt.Sprintf("%s/.config/gcloud/application_default_credentials.json", homeDir))
+	b, err := os.ReadFile(p)
 	if err != nil {
 		return nil, err
 	}
