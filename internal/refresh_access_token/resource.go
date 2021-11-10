@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"sort"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -171,6 +172,7 @@ func debugLogJSON(j []byte) {
 	for k := range m {
 		keys = append(keys, k)
 	}
+	sort.Strings(keys)
 	log.Printf(`[DEBUG] Found keys in auth file: %s\n
 `, keys)
 }
