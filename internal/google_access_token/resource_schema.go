@@ -13,7 +13,6 @@ func Resource() *schema.Resource {
 					Type: schema.TypeString,
 				},
 				Optional: true,
-				Default:  []interface{}{"https://www.googleapis.com/auth/cloud-platform"},
 			},
 			"access_token": {
 				Type:      schema.TypeString,
