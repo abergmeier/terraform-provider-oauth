@@ -14,7 +14,12 @@ import (
 
 func read(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 
-	scopes := d.Get("scopes").([]string)
+	si := d.Get("scopes").([]interface{})
+
+	scopes := make([]string, 0, len(si))
+	for _, i := range si {
+		scopes = append(scopes, i.(string))
+	}
 
 	creds, err := google.FindDefaultCredentials(context.TODO(), scopes...)
 	if err != nil {
